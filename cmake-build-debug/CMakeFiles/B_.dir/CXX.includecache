@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+E:/code/c++/B+/BPlusNode.cpp
+BPlusNode.h
+E:/code/c++/B+/BPlusNode.h
+
+E:/code/c++/B+/BPlusNode.h
+iostream
+-
+
+E:/code/c++/B+/BPlusTree.cpp
+BPlusTree.h
+E:/code/c++/B+/BPlusTree.h
+queue
+-
+iostream
+-
+
+E:/code/c++/B+/BPlusTree.h
+BPlusNode.h
+E:/code/c++/B+/BPlusNode.h
+BPlusNode.cpp
+E:/code/c++/B+/BPlusNode.cpp
+limits.h
+-
+
+E:/code/c++/B+/main.cpp
+BPlusTree.cpp
+E:/code/c++/B+/BPlusTree.cpp
+stdlib.h
+-
+fstream
+-
+
