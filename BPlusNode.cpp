@@ -11,13 +11,6 @@ int BPlusInnerNode::getKeyIndex(key_type theKey) const {
     return -1;
 }
 
-int BPlusOuterNode::getLeafIndex(int book) const {
-    for(int i = 0; i < val_num; i++)
-        if(val[i].BookNo == book) return i;
-
-    return -1;
-}
-
 void BPlusInnerNode::setKeyNum(int theNum) {
     key_num = theNum;
 }
@@ -131,11 +124,98 @@ void BPlusOuterNode::split() {
     return ;
 }
 
-void BPlusInnerNode::merge() {};
+void BPlusInnerNode::merge(BPlusInnerNode* brother) {
+    BPlusInnerNode *mergeTarget = new BPlusInnerNode();
+    int i = 0, theIndex;
+    for(; i < getKeyNum(); i++) {
+        mergeTarget->setKey(i, getKeyValue(i));
+        if(getChildType() == INNER) {
+            mergeTarget->setChild(i, getInnerChild(i));
+            getInnerChild(i)->setParent(mergeTarget);
+        }
+        else {
+            mergeTarget->setChild(i, getOuterChild(i));
+            getOuterChild(i)->setParent(mergeTarget);
+        }
+    }
+    for(; i < getKeyNum() + brother->getKeyNum(); i++) {
+        mergeTarget->setKey(i, brother->getKeyValue(i - getKeyNum()));
+        if (getChildType() == INNER) {
+            mergeTarget->setChild(i, brother->getInnerChild(i - getKeyNum()));
+            brother->getInnerChild(i - getKeyNum())->setParent(mergeTarget);
+        }
+        else {
+            mergeTarget->setChild(i, brother->getOuterChild(i - getKeyNum()));
+            brother->getOuterChild(i - getKeyNum())->setParent(mergeTarget);
+        }
+    }
 
-void BPlusInnerNode::borrowFrom(BPlusInnerNode *brother) {};
+    mergeTarget->setChildType(getChildType());
+    mergeTarget->setParent(getParent());
+    mergeTarget->setKeyNum(getKeyNum()+brother->getKeyNum());
 
-void BPlusOuterNode::borrowFrom(BPlusOuterNode *brother) {
+    theIndex = parent->getKeyIndex(getKeyValue(0));
+
+    parent->setChild(theIndex, mergeTarget);
+    for(i = theIndex+1; i < parent->getKeyNum()-1; i++){
+        parent->setKey(i, parent->getKeyValue(i+1));
+        parent->setChild(i, parent->getInnerChild(i+1));
+    }
+    parent->setKeyNum(parent->getKeyNum()-1);
+    delete brother;
+    delete this;
 };
 
-void BPlusOuterNode::merge(BPlusOuterNode *brother) {};
+void BPlusInnerNode::borrowFrom(BPlusInnerNode *brother) {
+    setKey(getKeyNum(), brother->getKeyValue(0));
+    if(getChildType() == INNER) {
+        setChild(getKeyNum(), brother->getInnerChild(0));
+        brother->getInnerChild(0)->setParent(this);
+    }
+    else {
+        setChild(getKeyNum(), brother->getOuterChild(0));
+        brother->getOuterChild(0)->setParent(this);
+    }
+    setKeyNum(getKeyNum()+1);
+    int theIndex= getParent()->getKeyIndex(getKeyValue(getKeyNum()-1));
+    getParent()->setKey(theIndex, brother->getKeyValue(1));
+    for(int i = 0; i < brother->getKeyNum()-1 ;i++){
+        brother->setKey(i, brother->getKeyValue(i+1));
+        if(getChildType() == INNER) brother->setChild(i, brother->getInnerChild(i+1));
+        else brother->setChild(i, brother->getOuterChild(i+1));
+    }
+    brother->setKeyNum(brother->getKeyNum()-1);
+    return ;
+};
+
+void BPlusOuterNode::merge(BPlusOuterNode *brother) {
+    BPlusOuterNode *mergeTarget = new BPlusOuterNode();
+    int i, theIndex;
+    for(i = 0; i < getValueNum(); i++)
+        mergeTarget->setVal(i, getValue(i));
+    for(; i < getValueNum() + brother->getValueNum(); i++)
+        mergeTarget->setVal(i, brother->getValue(i - getValueNum()));
+    mergeTarget->setValNum(getValueNum() + brother->getValueNum());
+    theIndex = parent->getKeyIndex(mergeTarget->getValue(0).BookNo);
+    parent->setChild(theIndex, mergeTarget);
+    for(theIndex = theIndex+1; theIndex < parent->getKeyNum()-1; theIndex++){
+        parent->setKey(theIndex, parent->getKeyValue(theIndex+1));
+        parent->setChild(theIndex, parent->getOuterChild(theIndex+1));
+    }
+    parent->setKeyNum(parent->getKeyNum()-1);
+    mergeTarget->setParent(getParent());
+    mergeTarget->setBrother(brother->getBrother());
+    delete brother;
+    delete this;
+};
+
+void BPlusOuterNode::borrowFrom(BPlusOuterNode *brother) {
+    setVal(getValueNum(), brother->getValue(0));
+    setValNum(getValueNum()+1);
+    int theIndex= getParent()->getKeyIndex(getValue(getValueNum()-1).BookNo);
+    getParent()->setKey(theIndex, brother->getValue(1).BookNo);
+    for(int i = 0; i < brother->getValueNum()-1 ;i++)
+        brother->setVal(i, brother->getValue(i+1));
+    brother->setValNum(getValueNum()-1);
+    return ;
+};

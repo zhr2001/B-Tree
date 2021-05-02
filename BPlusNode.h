@@ -59,7 +59,6 @@ public:
     void setChild(int theIndex, BPlusInnerNode* theNext);
     void setChild(int theIndex, BPlusOuterNode* theNext);
     void setParent(BPlusInnerNode *theParent);
-    NodeType getType() const { return type; }
     NodeType getChildType() const { return childType; }
     void setChildType(NodeType tt) { childType = tt; }
     BPlusInnerNode* getInnerChild(int theIndex) { return innerChild[theIndex]; }
@@ -67,7 +66,7 @@ public:
 
     void split();
     void borrowFrom(BPlusInnerNode *brother);
-    void merge();
+    void merge(BPlusInnerNode *brother);
     void insert(int theIndex, BPlusInnerNode *theNode);
     void insert(int theIndex, BPlusOuterNode *theNode);
 
@@ -88,14 +87,12 @@ public:
 
     int getValueNum() const { return val_num; }
     value_type& getValue(int theIndex) { return val[theIndex]; }
-    int getLeafIndex(int book) const;
     BPlusInnerNode* getParent() const { return parent; }
     void setVal(int leafIndex, value_type &bVal);
     void setValNum(int theNum);
     void setParent(BPlusInnerNode *theParent);
     void setBrother(BPlusOuterNode *theBrother);
     BPlusOuterNode* getBrother() { return brother ;}
-    NodeType getType() const { return type; }
 
     void split();
     void borrowFrom(BPlusOuterNode *brother);

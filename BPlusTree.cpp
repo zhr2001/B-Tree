@@ -128,59 +128,98 @@ void BPlusTree::giveBackBook(int theNo) {
     lastTarget->getValue(i).setStock(lastTarget->getValue(i).now_stock+1);
 }
 
+void BPlusTree::EditTheMinValue(int pre) {
+    while(target != root){
+        int theIndex = target->getParent()->getKeyIndex(pre);
+        BPlusInnerNode *temp = target->getParent();
+        temp->setKey(theIndex, target->getKeyValue(0));
+        target = temp;
+        if(theIndex == 0) {
+            EditTheMinValue(pre);
+            return ;
+        }
+        else return ;
+    }
+    if(root->getKeyIndex(pre) == 0 && root->getChildType() == INNER)
+        root->setKey(0, root->getInnerChild(0)->getKeyValue(0));
+    else if(root->getKeyIndex(pre) == 0 && root->getChildType() == OUTER) root->setKey(0, root->getOuterChild(0)->getValue(0).BookNo);
+    return ;
+}
+
 void BPlusTree::deleteVal(int theNo) {
     target = root;
     int i, j;
     BPlusOuterNode *lastTarget = findTarget(theNo);
     if(hasTheValue(lastTarget, theNo, i)) {
-        if(i == 0) lastTarget->getParent()->setKey(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo),
-                                                   lastTarget->getValue(1).BookNo);
+        cout << "Delete success" << endl;
+        if(i == 0) {
+            int preValue = target->getKeyValue(target->getKeyIndex(lastTarget->getValue(0).BookNo));
+            lastTarget->getParent()->setKey(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo),
+                                            lastTarget->getValue(1).BookNo);
+            target = lastTarget->getParent();
+            EditTheMinValue(preValue);
+        }
         for(j = i; j < lastTarget->getValueNum()-1; j++)
             lastTarget->setVal(j, lastTarget->getValue(j+1));
         lastTarget->setValNum(lastTarget->getValueNum()-1);
         if(lastTarget->getValueNum() < MIN_CHILD) {
-            if(lastTarget->getBrother() != nullptr && lastTarget->getBrother()->getValueNum() > MIN_CHILD){
-                lastTarget->borrowFrom(lastTarget->getBrother());
-                KeepUpToNormative(DELETE, i == 0);
+            if(lastTarget->getBrother() != nullptr &&
+               lastTarget->getParent()->getKeyIndex(lastTarget->getBrother()->getValue(0).BookNo) != -1 &&
+               lastTarget->getBrother()->getValueNum() > MIN_CHILD){
+               lastTarget->borrowFrom(lastTarget->getBrother());
+                return ;
+            }
+            if(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo) != 0 &&
+                lastTarget->getParent()->getOuterChild(
+                lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->getValueNum() > MIN_CHILD) {
+                lastTarget->getParent()->getOuterChild(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->borrowFrom(lastTarget);
                 return ;
             }
             if(lastTarget->getBrother() != nullptr &&
-               /* lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo) != -1 && */
-                lastTarget->getParent()->getOuterChild(
-                lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->getValueNum() > MIN_CHILD) {
-                lastTarget->borrowFrom(lastTarget->getParent()->getOuterChild(
-                        lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1));
-                KeepUpToNormative(DELETE, i == 0);
-                return ;
-            }
+               lastTarget->getParent()->getKeyIndex(lastTarget->getBrother()->getValue(0).BookNo) != -1)
             lastTarget->merge(lastTarget->getBrother());
-            KeepUpToNormative(DELETE, i == 0);
+            else
+                lastTarget->getParent()->getOuterChild(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->merge(lastTarget);
+            KeepUpToNormative(DELETE);
             return ;
         }
+        else return ;
     }
     cout << "Wrong number!" << endl;
     return ;
 }
 
-void BPlusTree::KeepUpToNormative(event e, bool flag) {
+void BPlusTree::search(int theNo) {
+    BPlusOuterNode* lastTarget = findTarget(theNo);
+    int i = 0;
+    if(hasTheValue(lastTarget, theNo, i)) cout << "The BookNo exists." << endl;
+    else cout << "Not exists" << endl;
+}
+
+void BPlusTree::KeepUpToNormative(event e) {
     if (e == DELETE) {
         while(target != root) {
             if (target->getKeyNum() >= MIN_CHILD) return ;
-            else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != -1 &&
+            else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != 0 &&
                     target->getParent()->getInnerChild(
-                            target->getParent()->getKeyIndex(target->getKeyValue(0)))->getKeyNum() > MIN_CHILD)
-                target->borrowFrom(target->getParent()->getInnerChild(
-                        target->getParent()->getKeyIndex(target->getKeyValue(0))));
-            else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != -1  &&
-                     target->getParent()->getInnerChild(
-                             target->getParent()->getKeyIndex(target->getKeyValue(0))+2)->getKeyNum() > MIN_CHILD)
-                target->borrowFrom(target->getParent()->getInnerChild(
-                        target->getParent()->getKeyIndex(target->getKeyValue(0))+2));
-            else target->merge();
+                            target->getParent()->getKeyIndex(target->getKeyValue(0))-1)->getKeyNum() > MIN_CHILD) {
+                target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1)->borrowFrom(target);
+                return ;
+            }
+            else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != target->getParent()->getKeyNum()-1  &&
+                     target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))+1)->getKeyNum() > MIN_CHILD){
+                target->borrowFrom(target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))+1));
+                return ;
+            }
+            else {
+                if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != 0)
+                target->merge(target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1));
+                else target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))+1)->merge(target);
+            }
             target = target->getParent();
             KeepUpToNormative(DELETE);
         }
-        if(target->getKeyNum() > 0) return ;
+        if(target->getKeyNum() > 1) return ;
         else root = root->getInnerChild(0);
         root->setParent(nullptr);
         delete target;

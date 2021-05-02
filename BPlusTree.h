@@ -19,7 +19,9 @@ public:
     void giveBackBook(int theNo);
     void print();
     void initTree(value_type* warehouse, int len) ;
-    void KeepUpToNormative(event e, bool flag = false);
+    void KeepUpToNormative(event e);
+    void EditTheMinValue(int pre);
+    void search(int theNo);
     BPlusOuterNode* findTarget(key_type no);
     int hasTheValue(BPlusOuterNode *theTarget, key_type no, int &i);
 
