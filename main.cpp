@@ -25,10 +25,10 @@ string strRand(int length) {			// length: 产生字符串的长度
 
 void rand_file() {
     ofstream out("../test.txt");
-    int a = rand() + 2000 ;
+    int a = 20100 ;
     out << a << endl;
     int flag = 0;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 10000; i++) {
         out << 1 << " ";
         testSet[flag++] = rand()+100;
         out << testSet[flag-1] << " ";
@@ -37,7 +37,7 @@ void rand_file() {
         out << name << " ";
         out << rand()%100+3 << endl;
     }
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 10000; i++) {
         out << 2 << " " << testSet[i] << endl;
     }
 //    for(int i = 0; i < 500; i++) {
@@ -77,6 +77,9 @@ int main() {
         }
         if (opt == 2) {
             in >> no;
+            if(no == 18736) {
+                cout << 1 << endl;
+            }
             t.deleteVal(no);
         }
         if (opt == 3) {

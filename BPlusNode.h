@@ -96,7 +96,7 @@ public:
 
     void split();
     void borrowFrom(BPlusOuterNode *brother);
-    void merge(BPlusOuterNode *brother);
+    void merge(BPlusOuterNode *brother, BPlusOuterNode *pNode);
 
 private:
     NodeType type;

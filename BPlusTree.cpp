@@ -37,7 +37,7 @@ Book init_book[70] = {
 };
 
 BPlusTree::BPlusTree() {
-    initTree(init_book, 10);
+    initTree(init_book, 20);
 }
 
 void BPlusTree::initTree(value_type* warehouse, int len) {
@@ -80,6 +80,12 @@ int BPlusTree::hasTheValue(BPlusOuterNode *lastTarget, key_type no, int &i) {
     for(i = 0; i < lastTarget->getValueNum() && lastTarget->getValue(i).BookNo < no; i++);
     if(i < lastTarget->getValueNum() && lastTarget->getValue(i).BookNo == no) return true;
     return false;
+}
+
+BPlusOuterNode * BPlusTree::preNode(BPlusOuterNode* node) {
+    if(node->getParent()->getKeyIndex(node->getValue(0).BookNo) != 0)
+        return node->getParent()->getOuterChild(node->getParent()->getKeyIndex(node->getValue(0).BookNo)-1);
+    return findTarget(node->getValue(0).BookNo-1);
 }
 
 void BPlusTree::insertVal(value_type &theVal) {
@@ -132,7 +138,7 @@ void BPlusTree::EditTheMinValue(int pre) {
     while(target != root){
         int theIndex = target->getParent()->getKeyIndex(pre);
         BPlusInnerNode *temp = target->getParent();
-        temp->setKey(theIndex, target->getKeyValue(0));
+        if(theIndex != -1) temp->setKey(theIndex, target->getKeyValue(0));
         target = temp;
         if(theIndex == 0) {
             EditTheMinValue(pre);
@@ -152,12 +158,14 @@ void BPlusTree::deleteVal(int theNo) {
     BPlusOuterNode *lastTarget = findTarget(theNo);
     if(hasTheValue(lastTarget, theNo, i)) {
         cout << "Delete success" << endl;
+        BPlusInnerNode *temp = target;
         if(i == 0) {
             int preValue = target->getKeyValue(target->getKeyIndex(lastTarget->getValue(0).BookNo));
             lastTarget->getParent()->setKey(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo),
                                             lastTarget->getValue(1).BookNo);
             target = lastTarget->getParent();
             EditTheMinValue(preValue);
+            target = lastTarget->getParent();
         }
         for(j = i; j < lastTarget->getValueNum()-1; j++)
             lastTarget->setVal(j, lastTarget->getValue(j+1));
@@ -172,14 +180,15 @@ void BPlusTree::deleteVal(int theNo) {
             if(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo) != 0 &&
                 lastTarget->getParent()->getOuterChild(
                 lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->getValueNum() > MIN_CHILD) {
-                lastTarget->getParent()->getOuterChild(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->borrowFrom(lastTarget);
+                lastTarget->borrowFrom(lastTarget->getParent()->getOuterChild(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1));
                 return ;
             }
             if(lastTarget->getBrother() != nullptr &&
                lastTarget->getParent()->getKeyIndex(lastTarget->getBrother()->getValue(0).BookNo) != -1)
-            lastTarget->merge(lastTarget->getBrother());
+                lastTarget->merge(lastTarget->getBrother(), preNode(lastTarget));
             else
-                lastTarget->getParent()->getOuterChild(lastTarget->getParent()->getKeyIndex(lastTarget->getValue(0).BookNo)-1)->merge(lastTarget);
+                preNode(lastTarget)->merge(lastTarget, preNode(preNode(lastTarget)));
+            target = temp;
             KeepUpToNormative(DELETE);
             return ;
         }
@@ -197,13 +206,14 @@ void BPlusTree::search(int theNo) {
 }
 
 void BPlusTree::KeepUpToNormative(event e) {
+    BPlusInnerNode *temp = target->getParent();
     if (e == DELETE) {
         while(target != root) {
             if (target->getKeyNum() >= MIN_CHILD) return ;
             else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != 0 &&
                     target->getParent()->getInnerChild(
                             target->getParent()->getKeyIndex(target->getKeyValue(0))-1)->getKeyNum() > MIN_CHILD) {
-                target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1)->borrowFrom(target);
+                target->borrowFrom(target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1))  ;
                 return ;
             }
             else if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != target->getParent()->getKeyNum()-1  &&
@@ -213,11 +223,12 @@ void BPlusTree::KeepUpToNormative(event e) {
             }
             else {
                 if(target->getParent()->getKeyIndex(target->getKeyValue(0)) != 0)
-                target->merge(target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1));
-                else target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))+1)->merge(target);
+                    target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))-1)->merge(target);
+                else target->merge(target->getParent()->getInnerChild(target->getParent()->getKeyIndex(target->getKeyValue(0))+1));
             }
-            target = target->getParent();
+            target = temp;
             KeepUpToNormative(DELETE);
+            return;
         }
         if(target->getKeyNum() > 1) return ;
         else root = root->getInnerChild(0);

@@ -23,6 +23,7 @@ public:
     void EditTheMinValue(int pre);
     void search(int theNo);
     BPlusOuterNode* findTarget(key_type no);
+    BPlusOuterNode* preNode(BPlusOuterNode *node);
     int hasTheValue(BPlusOuterNode *theTarget, key_type no, int &i);
 
 private:
